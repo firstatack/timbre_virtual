@@ -1,2 +1,3 @@
+requests
 Flask
-request
+gunicorn  # Si usas gunicorn
