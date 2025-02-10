@@ -5,16 +5,11 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-app = Flask(__name__, static_folder='static')  # Configura la carpeta estática
+app = Flask(__name__, static_folder='static')
 
 logging.basicConfig(level=logging.INFO)
 
 # *** CONFIGURACIÓN SEGURA DE LAS CREDENCIALES ***
-###  ESTA FORMA SERIA INSEGURA 
-#API_KEY = 'xxxxxxxxxx'
-#DEVICE_ID = 'xxxxxxxxxx'
-
-## mEJOR LAS CREAS COMO VARIABLE DE ENTORNO
 API_KEY = os.environ.get('SINRIC_API_KEY')
 DEVICE_ID = os.environ.get('SINRIC_DEVICE_ID')
 
@@ -36,7 +31,7 @@ def get_access_token():
             'https://api.sinric.pro/api/v1/auth',
             headers={'x-sinric-api-key': API_KEY}
         )
-        auth_response.raise_for_status()
+        auth_response.raise_for_status()  # Lanza una excepción si la respuesta no es 200
         auth_data = auth_response.json()
         access_token = auth_data['accessToken']
         expires_in = auth_data['expiresIn']
@@ -47,7 +42,7 @@ def get_access_token():
         logging.error(f"Error al obtener access token: {e}")
         return None
 
-@app.route('/')  # Ruta para servir index.html
+@app.route('/')
 def index():
     return send_from_directory(app.static_folder, 'index.html')
 
@@ -60,8 +55,8 @@ def timbre():
     try:
         action_payload = {
             "type": "request",
-            "action": "DoorbellPress",  # Acción para el timbre (revisar manual)
-            "value": json.dumps({"state": "pressed"})  # value debe ser un string JSON
+            "action": "DoorbellPress",
+            "value": json.dumps({"state": "pressed"})
         }
         device_action_response = requests.post(
             f'https://api.sinric.pro/api/v1/devices/{DEVICE_ID}/action',
@@ -72,20 +67,22 @@ def timbre():
             data=json.dumps(action_payload)
         )
 
-        device_action_response.raise_for_status()
-        action_data = device_action_response.json()
-
-        if action_data.get('success'):
-            logging.info("Timbre activado correctamente.")
-            return 'Timbre activado', 200
+        # Manejo de errores mejorado
+        if device_action_response.status_code == 200:
+            return jsonify({'message': 'Timbre activado'}), 200
         else:
-            error_message = action_data.get('message') or "Error desconocido al activar el timbre"
-            logging.error(f"Error al activar el timbre: {error_message}")
-            return jsonify({'error': error_message}), 500  # Devuelve JSON con el error
+            try:  # Intenta obtener el mensaje de error específico de Sinric Pro
+                error_data = device_action_response.json()
+                error_message = error_data.get('message') or "Error desconocido al activar el timbre"
+            except json.JSONDecodeError:  # Si la respuesta no es JSON
+                error_message = f"Error {device_action_response.status_code} al activar el timbre"
+
+            logging.error(f"Error al activar el timbre: {error_message}")  # Loggea el error específico
+            return jsonify({'error': error_message}), device_action_response.status_code  # Devuelve el error específico
 
     except requests.exceptions.RequestException as e:
         logging.error(f'Error al activar el timbre: {e}')
-        return jsonify({'error': 'Error al activar el timbre'}), 500  # Devuelve JSON con el error
+        return jsonify({'error': str(e)}), 500  # Devuelve el mensaje de la excepción
 
 if __name__ == '__main__':
     app.run(debug=True)
