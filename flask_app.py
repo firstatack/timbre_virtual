@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 # *** CONFIGURACIÓN SEGURA DE LAS CREDENCIALES ***
 API_KEY = os.environ.get('SINRIC_API_KEY')
 DEVICE_ID = os.environ.get('SINRIC_DEVICE_ID')
-PORTAL_ID = os.environ.get('SINRIC_PORTAL_ID')  # Nueva variable para portalId
+PORTAL_ID = os.environ.get('SINRIC_PORTAL_ID')
 
 if not API_KEY or not DEVICE_ID or not PORTAL_ID:
     raise ValueError("Las variables de entorno SINRIC_API_KEY, SINRIC_DEVICE_ID y SINRIC_PORTAL_ID deben estar configuradas.")
