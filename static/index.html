@@ -1,64 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timbre Virtual</title>
     <style>
-        /* ... (Estilos CSS - sin cambios) ... */
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:active {
+            background-color: #004085;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: default;
+        }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Si no te esperaban o no te ven pulsa el boton amarillo</h1>
-    </header>
-
-    <button id="bell-button">
-        <div class="bell"></div>
-    </button>
-
-    <footer>
-        <p>&copy; 2025 Timbre Virtual - Creado por Firstaatack</p>
-    </footer>
+    <h1>Timbre Virtual</h1>
+    <button id="boton-timbre">Llamar al Timbre</button>
 
     <script>
-        const bellButton = document.getElementById('bell-button');
+        const botonTimbre = document.getElementById('boton-timbre');
 
-        bellButton.addEventListener('click', () => {
-            bellButton.classList.add('shake');
-            bellButton.disabled = true;
-            bellButton.textContent = "Timbrando...";
+        botonTimbre.addEventListener('click', () => {
+            botonTimbre.disabled = true;
+            botonTimbre.textContent = "Timbrando...";
 
-            llamarTimbre();
-
-            setTimeout(() => {
-                bellButton.classList.remove('shake');
-            }, 500);
-        });
-
-        function llamarTimbre() {
-            fetch('https://timbrevirtual-production.up.railway.app/timbre', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+            fetch('/llamar_timbre', {
+                method: 'POST'
             })
             .then(response => {
                 if (!response.ok) {
-                    return response.json().then(err => {throw new Error(err.error)}); // Obtiene el error JSON
+                    return response.json().then(err => { throw new Error(err.error) });
                 }
-                return response.json(); // Espera JSON en la respuesta (importante)
+                return response.json();
             })
-            .then(data => { // Ahora data es un objeto JSON
-                bellButton.textContent = "Timbre Activado";
-                bellButton.disabled = false;
-                alert(data.message); // Muestra el mensaje del backend (data.message)
+            .then(data => {
+                alert(data.message);
             })
             .catch(error => {
-                bellButton.textContent = "Error";
-                bellButton.disabled = false;
-                console.error("Error al activar el timbre:", error);
-                alert(error.message || "Error al activar el timbre. Por favor, inténtalo de nuevo más tarde."); // Muestra mensaje de error
+                alert(error.message || "Error al llamar al timbre.");
+            })
+            .finally(() => {
+                botonTimbre.disabled = false;
+                botonTimbre.textContent = "Llamar al Timbre";
             });
-        }
+        });
     </script>
 </body>
 </html>
