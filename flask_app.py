@@ -4,6 +4,8 @@ from flask import Flask, request, jsonify, send_from_directory
 import requests
 import json
 from datetime import datetime, timedelta
+import uuid
+import time
 
 app = Flask(__name__, static_folder='static')
 
@@ -12,9 +14,10 @@ logging.basicConfig(level=logging.INFO)
 # *** CONFIGURACIÓN SEGURA DE LAS CREDENCIALES ***
 API_KEY = os.environ.get('SINRIC_API_KEY')
 DEVICE_ID = os.environ.get('SINRIC_DEVICE_ID')
+PORTAL_ID = os.environ.get('SINRIC_PORTAL_ID')  # Nueva variable para portalId
 
-if not API_KEY or not DEVICE_ID:
-    raise ValueError("Las variables de entorno SINRIC_API_KEY y SINRIC_DEVICE_ID deben estar configuradas.")
+if not API_KEY or not DEVICE_ID or not PORTAL_ID:
+    raise ValueError("Las variables de entorno SINRIC_API_KEY, SINRIC_DEVICE_ID y SINRIC_PORTAL_ID deben estar configuradas.")
 # *********************************************
 
 # Variables para almacenar el access token y su tiempo de expiración
@@ -53,32 +56,37 @@ def timbre():
         return jsonify({'error': 'Error de autenticación'}), 500
 
     try:
-        action_payload = {
-            "type": "request",
+        message_id = str(uuid.uuid4())
+        created_at = int(time.time())
+
+        url = f"https://api.sinric.pro/api/v1/devices/{DEVICE_ID}/action"
+        url += f"?clientId={PORTAL_ID}&messageId={message_id}&type=event"
+        url += f"&action=DoorbellPress&createdAt={created_at}"
+
+        payload = {
+            "type": "event",
             "action": "DoorbellPress",
             "value": json.dumps({"state": "pressed"})
         }
-        device_action_response = requests.post(
-            f'https://api.sinric.pro/api/v1/devices/{DEVICE_ID}/action',
-            headers={
-                'Authorization': f'Bearer {access_token}',
-                'Content-Type': 'application/json'
-            },
-            data=json.dumps(action_payload)
-        )
 
-        # Manejo de errores mejorado
-        if device_action_response.status_code == 200:
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+        if response.status_code == 200:
             return jsonify({'message': 'Timbre activado'}), 200
         else:
             try:  # Intenta obtener el mensaje de error específico de Sinric Pro
-                error_data = device_action_response.json()
+                error_data = response.json()
                 error_message = error_data.get('message') or "Error desconocido al activar el timbre"
             except json.JSONDecodeError:  # Si la respuesta no es JSON
-                error_message = f"Error {device_action_response.status_code} al activar el timbre"
+                error_message = f"Error {response.status_code} al activar el timbre"
 
             logging.error(f"Error al activar el timbre: {error_message}")  # Loggea el error específico
-            return jsonify({'error': error_message}), device_action_response.status_code  # Devuelve el error específico
+            return jsonify({'error': error_message}), response.status_code  # Devuelve el error específico
 
     except requests.exceptions.RequestException as e:
         logging.error(f'Error al activar el timbre: {e}')
