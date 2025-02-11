@@ -57,7 +57,7 @@
             botonTimbre.disabled = true;
             botonTimbre.textContent = "Timbrando...";
 
-            fetch('/llamar_timbre', {
+            fetch('/timbre', {
                 method: 'POST'
             })
             .then(response => {
