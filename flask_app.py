@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template , request, jsonify
 from dotenv import load_dotenv
+import gunicorn
 import requests
 import json
 
