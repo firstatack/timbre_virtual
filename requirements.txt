@@ -1,3 +1,4 @@
 requests
 Flask
-gunicorn  # Si usas gunicorn
+#gunicorn  # Si usas gunicorn
+python-dotenv # Para cargar variables de entorno y desde .env
